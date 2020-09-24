@@ -1,7 +1,12 @@
-#!/usr/bin/env python
-from libinjection import *
+#!/usr/bin/env python3
+from libinjection import sqli_state
 from words import *
 import time
+import sys
+if sys.version_info > (3, 7):
+    from time import process_time as clock
+else:
+    from time import clock as clock
 
 def lookup_null(state, style, keyword):
     return ''
@@ -29,58 +34,58 @@ def main():
         )
     imax = 100000
 
-    t0 = time.clock()
+    t0 = clock()
     sfilter = sqli_state()
     for i in xrange(imax):
         s = inputs[i % 7]
         sqli_init(sfilter, s, 0)
         is_sqli(sfilter)
-    t1 = time.clock()
+    t1 = clock()
     total = imax / (t1 - t0)
     print("python->c TPS            = {0}".format(total))
 
-    t0 = time.clock()
+    t0 = clock()
     sfilter = sqli_state()
     for i in xrange(imax):
         s = inputs[i % 7]
         sqli_init(sfilter, s, 0)
         sqli_callback(sfilter, lookup_null)
         is_sqli(sfilter)
-    t1 = time.clock()
+    t1 = clock()
     total = imax / (t1 - t0)
     print("python lookup_null TPS    = {0}".format(total))
 
-    t0 = time.clock()
+    t0 = clock()
     sfilter = sqli_state()
     for i in xrange(imax):
         s = inputs[i % 7]
         sqli_init(sfilter, s, 0)
         sqli_callback(sfilter, lookup_upcase)
         is_sqli(sfilter)
-    t1 = time.clock()
+    t1 = clock()
     total = imax / (t1 - t0)
     print("python lookup_upcase TPS    = {0}".format(total))
 
-    t0 = time.clock()
+    t0 = clock()
     sfilter = sqli_state()
     for i in xrange(imax):
         s = inputs[i % 7]
         sqli_init(sfilter, s, 0)
         sqli_callback(sfilter, lookup_c)
         is_sqli(sfilter)
-    t1 = time.clock()
+    t1 = clock()
     total = imax / (t1 - t0)
     print("python lookup_c TPS    = {0}".format(total))
 
 
-    t0 = time.clock()
+    t0 = clock()
     sfilter = sqli_state()
     for i in xrange(imax):
         s = inputs[i % 7]
         sqli_init(sfilter, s, 0)
         sqli_callback(sfilter, lookup)
         is_sqli(sfilter)
-    t1 = time.clock()
+    t1 = clock()
     total = imax / (t1 - t0)
     print("python lookup TPS = {0}".format(total))
 
