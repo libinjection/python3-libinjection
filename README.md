@@ -1,2 +1,2 @@
-# libinjection-py
-libInjection Python bindings
+# python3-libinjection
+libInjection Python3 bindings
