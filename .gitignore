@@ -127,3 +127,12 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# Upstream git repo
+upstream/
+libinjection/libinjection.h
+libinjection/libinjection.py
+libinjection/libinjection_xss.*
+libinjection/libinjection_html5.*
+libinjection/libinjection_sqli*
+libinjection/libinjection_wrap*

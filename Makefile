@@ -3,7 +3,7 @@ all: build
 #
 #
 
-build: copy libinjection/libinjection_wrap.c
+build: upstream libinjection/libinjection_wrap.c
 	rm -f libinjection.py libinjection.pyc
 	python setup.py --verbose build --force
 
@@ -21,29 +21,31 @@ test: test-unit
 speed:
 	./speedtest.py
 
+upstream: 
+	[ -d $@ ] || git clone --depth=1 https://github.com/libinjection/libinjection.git upstream
 
-words.py: Makefile json2python.py ../src/sqlparse_data.json
-	./json2python.py < ../src/sqlparse_data.json > words.py
+libinjection/libinjection.h libinjection/libinjection_sqli.h: upstream
+	cp -f upstream/src/libinjection*.h upstream/src/libinjection*.c libinjection/
+
+words.py: Makefile json2python.py upstream
+	./json2python.py < upstream/src/sqlparse_data.json > words.py
 
 
 libinjection/libinjection_wrap.c: libinjection/libinjection.i libinjection/libinjection.h libinjection/libinjection_sqli.h
 	swig -version
-	swig -python -builtin -Wall -Wextra libinjection/libinjection.i
+	swig -py3 -python -builtin -Wall -Wextra libinjection/libinjection.i
 
-
-copy:
-	cp ../src/libinjection*.h ../src/libinjection*.c libinjection/
 
 .PHONY: copy
 
-libinjection.so: copy
+libinjection.so: libinjection/libinjection_wrap.c
 	gcc -std=c99 -Wall -Werror -fpic -c libinjection/libinjection_sqli.c
 	gcc -std=c99 -Wall -Werror -fpic -c libinjection/libinjection_xss.c
 	gcc -std=c99 -Wall -Werror -fpic -c libinjection/libinjection_html5.c
 	gcc -dynamiclib -shared -o libinjection.so libinjection_sqli.o libinjection_xss.o libinjection_html5.o
 
 clean:
-	@rm -rf build dist
+	@rm -rf build dist upstream
 	@rm -f *.pyc *~ *.so *.o
 	@rm -f nosetests.xml
 	@rm -f words.py
