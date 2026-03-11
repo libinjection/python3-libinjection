@@ -1,0 +1,66 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  schedule:
+    # Run weekly on Mondays at midnight UTC to catch upstream changes
+    - cron: '0 0 * * 1'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.8', '3.9', '3.10', '3.11', '3.12']
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y swig gcc python3-dev
+
+      - name: Install Python dependencies
+        run: |
+          pip install --upgrade pip setuptools pytest
+
+      - name: Clone upstream libinjection
+        run: |
+          git clone --depth=1 https://github.com/libinjection/libinjection.git upstream
+
+      - name: Copy upstream source files
+        run: |
+          cp -f upstream/src/libinjection*.h upstream/src/libinjection*.c libinjection/
+
+      - name: Create tests symlink for test_driver.py
+        # test_driver.py resolves test files relative to ../tests from the repo root
+        run: |
+          ln -s "$(realpath upstream/tests)" "$(realpath ..)/tests"
+
+      - name: Generate words.py from upstream data
+        run: |
+          python json2python.py < upstream/src/sqlparse_data.json > words.py
+
+      - name: Generate SWIG wrapper
+        run: |
+          swig -py3 -python -builtin -Wall -Wextra libinjection/libinjection.i
+
+      - name: Build C extension in-place
+        run: |
+          python setup.py build_ext --inplace
+
+      - name: Run tests
+        run: |
+          pytest test_driver.py -v
