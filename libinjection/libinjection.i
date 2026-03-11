@@ -3,6 +3,8 @@
 %{
 #include "libinjection.h"
 #include "libinjection_sqli.h"
+#include "libinjection_xss.h"
+#include "libinjection_error.h"
 #include <stddef.h>
 
 /* This is the callback function that runs a python function
@@ -13,7 +15,6 @@ static char libinjection_python_check_fingerprint(sfilter* sf, int lookuptype, c
     PyObject *fp;
     PyObject *arglist;
     PyObject *result;
-    const char* strtype;
     char ch;
 
     // get sfilter->pattern
@@ -25,14 +26,21 @@ static char libinjection_python_check_fingerprint(sfilter* sf, int lookuptype, c
     result = PyObject_CallObject((PyObject*) sf->userdata, arglist);
     Py_DECREF(arglist);
     if (result == NULL) {
-        printf("GOT NULL\n");
         // python call has an exception
         // pass it back
         ch = '\0';
     } else {
-        // convert value of python call to a char
-        strtype =  PyString_AsString(result);
-        ch = strtype[0];
+        // convert value of python call to a char (Python 3 compatible)
+        if (PyUnicode_Check(result)) {
+            Py_ssize_t size;
+            const char* str = PyUnicode_AsUTF8AndSize(result, &size);
+            ch = (str != NULL && size > 0) ? str[0] : '\0';
+        } else if (PyBytes_Check(result)) {
+            const char* str = PyBytes_AsString(result);
+            ch = (str != NULL) ? str[0] : '\0';
+        } else {
+            ch = '\0';
+        }
         Py_DECREF(result);
     }
     return ch;
@@ -67,6 +75,18 @@ for (i = 0; i < $1_dim0; i++) {
 
 // automatically append string length into arg array
 %apply (char *STRING, size_t LENGTH) { (const char *s, size_t slen) };
+%apply (char *STRING, size_t LENGTH) { (const char *s, size_t len) };
+
+// Make the fingerprint output parameter in libinjection_sqli() work as an output
+// The fingerprint buffer size matches libinjection's internal LIBINJECTION_SQLI_MAX_TOKENS (5) + null byte
+#define LIBINJECTION_FINGERPRINT_SIZE 8
+%typemap(in, numinputs=0) char fingerprint[] (char temp[LIBINJECTION_FINGERPRINT_SIZE]) {
+    memset(temp, 0, sizeof(temp));
+    $1 = temp;
+}
+%typemap(argout) char fingerprint[] {
+    $result = SWIG_Python_AppendOutput($result, PyUnicode_FromString($1));
+}
 
 %typemap(in) (ptr_lookup_fn fn, void* userdata) {
     if ($input == Py_None) {
@@ -77,5 +97,7 @@ for (i = 0; i < $1_dim0; i++) {
         $2 = $input;
     }
 }
+%include "libinjection_error.h"
 %include "libinjection.h"
 %include "libinjection_sqli.h"
+%include "libinjection_xss.h"
