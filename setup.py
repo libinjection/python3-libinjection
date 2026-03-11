@@ -18,7 +18,7 @@ def get_libinjection_version():
     version_file = os.path.join(os.path.dirname(__file__),
                                 'upstream', 'src', 'libinjection_sqli.c')
     if os.path.exists(version_file):
-        with open(version_file) as f:
+        with open(version_file, encoding="utf-8") as f:
             for line in f:
                 if '#define LIBINJECTION_VERSION' in line and '__clang_analyzer__' not in line:
                     # Extract version string from: #define LIBINJECTION_VERSION "x.y.z"

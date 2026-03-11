@@ -8,6 +8,10 @@ import glob
 from libinjection import *
 from words import *
 
+# Test data is in upstream/tests/ relative to this script's directory
+_SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+_TESTS_DIR = os.path.join(_SCRIPT_DIR, 'upstream', 'tests')
+
 print(version())
 
 def print_token_string(tok):
@@ -40,7 +44,7 @@ def print_token(tok):
         out += print_token_string(tok)
     else:
         out += tok.val
-    return out.strip()
+    return out.rstrip('\r\n')
 
 def toascii(data):
     """
@@ -54,33 +58,39 @@ def toascii(data):
 
 def readtestdata(filename):
     """
-    Read a test file and split into components
+    Read a test file and split into components.
+    Returns the input as bytes to preserve non-ASCII characters exactly
+    (e.g. 0xA0 word separators) when passed to the C tokenizer.
     """
 
     state = None
     info = {
-        '--TEST--': '',
-        '--INPUT--': '',
-        '--EXPECTED--': ''
+        b'--TEST--': b'',
+        b'--INPUT--': b'',
+        b'--EXPECTED--': b''
         }
 
-    for line in open(filename, 'r'):
-        line = line.rstrip()
-        if line in ('--TEST--', '--INPUT--', '--EXPECTED--'):
+    for line in open(filename, 'rb'):
+        line = line.rstrip(b'\r\n')
+        if line in info:
             state = line
         elif state:
-            info[state] += line + '\n'
+            info[state] += line + b'\n'
 
     # remove last newline from input
-    info['--INPUT--'] = info['--INPUT--'][0:-1]
+    info[b'--INPUT--'] = info[b'--INPUT--'][:-1]
 
-    return (info['--TEST--'], info['--INPUT--'].strip(), info['--EXPECTED--'].strip())
+    return (
+        info[b'--TEST--'].decode('utf-8', errors='replace'),
+        info[b'--INPUT--'],   # kept as bytes for exact byte semantics
+        info[b'--EXPECTED--'].decode('utf-8').strip()
+    )
 
 def runtest(testname, flag, sqli_flags):
     """
     runs a test, optionally with valgrind
     """
-    data =  readtestdata(os.path.join('../tests', testname))
+    data =  readtestdata(os.path.join(_TESTS_DIR, testname))
 
     sql_state = sqli_state()
     sqli_init(sql_state, data[1], sqli_flags)
@@ -105,7 +115,8 @@ def runtest(testname, flag, sqli_flags):
     actual = actual.strip()
 
     if actual != data[2]:
-        print("INPUT: \n" + toascii(data[1]))
+        input_display = data[1].decode('latin-1') if isinstance(data[1], bytes) else data[1]
+        print("INPUT: \n" + toascii(input_display))
         print()
         print("EXPECTED: \n" + toascii(data[2]))
         print()
@@ -113,27 +124,27 @@ def runtest(testname, flag, sqli_flags):
         assert actual == data[2]
 
 def test_tokens():
-    for testname in sorted(glob.glob('../tests/test-tokens-*.txt')):
+    for testname in sorted(glob.glob(os.path.join(_TESTS_DIR, 'test-tokens-*.txt'))):
         testname = os.path.basename(testname)
         runtest(testname, 'tokens', libinjection.FLAG_QUOTE_NONE | libinjection.FLAG_SQL_ANSI)
 
 def test_tokens_mysql():
-    for testname in sorted(glob.glob('../tests/test-tokens_mysql-*.txt')):
+    for testname in sorted(glob.glob(os.path.join(_TESTS_DIR, 'test-tokens_mysql-*.txt'))):
         testname = os.path.basename(testname)
         runtest(testname, 'tokens', libinjection.FLAG_QUOTE_NONE | libinjection.FLAG_SQL_MYSQL)
 
 def test_folding():
-    for testname in sorted(glob.glob('../tests/test-folding-*.txt')):
+    for testname in sorted(glob.glob(os.path.join(_TESTS_DIR, 'test-folding-*.txt'))):
         testname = os.path.basename(testname)
         runtest(testname, 'folding', libinjection.FLAG_QUOTE_NONE | libinjection.FLAG_SQL_ANSI)
 
 def test_fingerprints():
-    for testname in sorted(glob.glob('../tests/test-sqli-*.txt')):
+    for testname in sorted(glob.glob(os.path.join(_TESTS_DIR, 'test-sqli-*.txt'))):
         testname = os.path.basename(testname)
         runtest(testname, 'fingerprints', 0)
 
 
 if __name__ == '__main__':
     import sys
-    sys.stderr.write("run using nosetests\n")
+    sys.stderr.write("run using pytest\n")
     sys.exit(1)

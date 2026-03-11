@@ -30,7 +30,10 @@ make libinjection/libinjection.h libinjection/libinjection_sqli.h libinjection/l
 ### 3. Generate the SWIG wrapper
 
 ```bash
-swig -python -builtin -Wall -Wextra libinjection/libinjection.i
+swig -python -builtin -Wall -Wextra \
+     -o libinjection/libinjection_wrap.c \
+     -outdir libinjection \
+     libinjection/libinjection.i
 ```
 
 ### 4. Build the Python extension
@@ -85,9 +88,10 @@ if result:
 
 ## Testing
 
-Run the test suite using pytest:
+Run the test suite using pytest from the repository root:
 
 ```bash
-cd /tmp  # run from outside the repo directory to avoid pytest.py conflict
-python3 -m pytest /path/to/python3-libinjection/test_driver.py -v
+python3 -m pytest test_driver.py test_api.py -v
 ```
+
+> **Note:** `upstream/tests/` must exist (run `make upstream` first) for `test_driver.py` to find test data.

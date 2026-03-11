@@ -16,6 +16,9 @@ def toc(obj):
 import libinjection
 
 def lookup(state, stype, keyword):
+    # keyword is passed as bytes from C; decode to str for dict lookup
+    if isinstance(keyword, bytes):
+        keyword = keyword.decode('latin-1')
     keyword = keyword.upper()
     if stype == libinjection.LOOKUP_FINGERPRINT:
         if keyword in fingerprints and libinjection.sqli_not_whitelist(state):
