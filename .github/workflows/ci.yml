@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [ main, master ]
+    branches: [ main ]
   pull_request:
-    branches: [ main, master ]
+    branches: [ main ]
   schedule:
     # Run weekly on Mondays at midnight UTC to catch upstream changes
     - cron: '0 0 * * 1'
