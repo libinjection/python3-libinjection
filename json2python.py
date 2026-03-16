@@ -21,7 +21,9 @@ def lookup(state, stype, keyword):
         keyword = keyword.decode('latin-1')
     keyword = keyword.upper()
     if stype == libinjection.LOOKUP_FINGERPRINT:
-        if keyword in fingerprints and libinjection.sqli_not_whitelist(state):
+        # sqli_check_fingerprint calls sqli_blacklist (fingerprint membership
+        # check) and sqli_not_whitelist (false-positive reduction) internally.
+        if libinjection.sqli_check_fingerprint(state):
             return 'F'
         else:
             return chr(0)

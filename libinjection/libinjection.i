@@ -154,5 +154,14 @@ for (i = 0; i < $1_dim0; i++) {
 }
 %include "libinjection_error.h"
 %include "libinjection.h"
+
+// These functions are declared static in the upstream header and therefore
+// cannot be exported as symbols from the compiled extension.  Ignore them
+// so SWIG does not generate wrappers that produce undefined symbol errors
+// at import time.  Use sqli_check_fingerprint (non-static) instead.
+%ignore libinjection_sqli_reset;
+%ignore libinjection_sqli_lookup_word;
+%ignore libinjection_sqli_blacklist;
+%ignore libinjection_sqli_not_whitelist;
 %include "libinjection_sqli.h"
 %include "libinjection_xss.h"
