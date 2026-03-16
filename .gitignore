@@ -136,3 +136,7 @@ libinjection/libinjection_xss.*
 libinjection/libinjection_html5.*
 libinjection/libinjection_sqli*
 libinjection/libinjection_wrap*
+libinjection/libinjection_error.h
+
+# Generated files
+words.py

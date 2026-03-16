@@ -1,1 +1,1 @@
-from libinjection import *
+from .libinjection import *
